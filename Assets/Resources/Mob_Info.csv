@@ -1,0 +1,7 @@
+﻿id,mob,hp,atk,speed
+1,Slime_Normal,10,1,5
+2,Slime_Armor,20,2,5
+3,Slime_Brute,15,3,5
+4,Slime_Dash,15,2,5
+5,Slime_King,100,5,5
+6,Slime_Angel,15,2,5

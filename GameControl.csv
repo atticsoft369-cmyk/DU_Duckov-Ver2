@@ -1,0 +1,30 @@
+﻿[PLAYER],,설명 (key 이름은 바꾸지 마세요)
+key,value,설명
+player_move_speed,8,플레이어 이동속도
+pistol_bullet_speed,30,권총 탄알 속도
+pistol_damage,3,권총 데미지
+rifle_bullet_speed,30,라이플 탄알 속도
+rifle_damage,2,라이플 데미지
+slime_gun_kills,4,슬라임 건 게이지를 채우는 데 필요한 슬라임 킬 수
+slime_gun_range,5,슬라임 건 장판 범위(가로 길이 m)
+slime_gun_slow_percent,60,슬라임 건 장판 위 몬스터 이동속도 감소율(%)
+player_hp,10,플레이어 HP
+
+[MONSTER],,mob 이름은 프리팹 이름과 같아야 합니다
+mob,hp,speed,atk,설명
+Slime_Normal,10,5,1,기본 슬라임
+Slime_Armor,20,5,2,아머(쉴드) 슬라임 - HP는 1단계/2단계 각각
+Slime_Dash,15,5,2,스핀 슬라임
+Slime_Angel,15,5,2,엔젤 슬라임
+
+[BOSS]
+mob,hp,speed,atk1,atk2,설명
+Slime_King,100,5,5,10,슬라임 킹 - atk1 = FLOOR 장판 틱당 피해 / atk2 = 구체 발사 피해
+
+[WAVE],,웨이브 정보 (MobTable과 같은 형식 - 한 웨이브에 최대 5턴 x 2종류)
+id,level,delay1,mob1_1,value1_1,mob1_2,value1_2,delay2,mob2_1,value2_1,mob2_2,value2_2,delay3,mob3_1,value3_1,mob3_2,value3_2,delay4,mob4_1,value4_1,mob4_2,value4_2,delay5,mob5_1,value5_1,mob5_2,value5_2,wavetimer
+1,1,0,Slime_Normal,1,,,,,,,,,,,,,,,,,,,,,,,30
+2,2,0,Slime_Armor,1,,,,,,,,,,,,,,,,,,,,,,,30
+3,3,0,Slime_Dash,1,,,,,,,,,,,,,,,,,,,,,,,30
+4,4,0,Slime_Angel,2,,,,,,,,,,,,,,,,,,,,,,,30
+5,5,0,Slime_King,1,,,,,,,,,,,,,,,,,,,,,,,30

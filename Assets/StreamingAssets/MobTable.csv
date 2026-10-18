@@ -1,0 +1,6 @@
+﻿id,level,delay1,mob1_1,value1_1,mob1_1,value1_1,delay2,mob2_1,value2_1,mob2_2,value2_2,delay3,mob3_1,value3_1,mob3_2,value3_2,delay4,mob4_1,value4_1,mob4_2,value4_2,delay5,mob5_1,value5_1,mob5_2,value5_2,wavetimer
+1,1,0,Slime_Normal,1,,,,,,,,,,,,,,,,,,,,,,,30
+2,2,0,Slime_Armor,1,,,,,,,,,,,,,,,,,,,,,,,30
+3,3,0,Slime_Dash,1,,,,,,,,,,,,,,,,,,,,,,,30
+4,4,0,Slime_Angel,2,,,,,,,,,,,,,,,,,,,,,,,30
+5,5,0,Slime_King,1,,,,,,,,,,,,,,,,,,,,,,,30

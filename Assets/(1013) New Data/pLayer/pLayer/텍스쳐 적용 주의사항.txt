@@ -1,0 +1,2 @@
+eye 제외하고 텍스쳐는 base color만 적용해도 정상적으로 나옵니다.
+eye는 base color와 Roughness 적용해 주세요
