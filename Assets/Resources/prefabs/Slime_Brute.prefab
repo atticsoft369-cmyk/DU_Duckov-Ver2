@@ -231,15 +231,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalScale.x
-      value: 2
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalScale.y
-      value: 2
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalScale.z
-      value: 2
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalPosition.x
@@ -247,11 +247,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 20
+      value: 6.62
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 4480025926413496775, guid: 362aba3f47dee91409bf87333ef052aa, type: 3}
       propertyPath: m_LocalRotation.w
@@ -544,16 +544,32 @@ MonoBehaviour:
   rotationSpeed: 10
   attackDamage: 1
   attackInterval: 1
+  attackHitDelay: 0
   attackRange: 2
+  attackContactGap: 0.25
   hitStopDuration: 0.3
   speedParameterName: Speed
   attackParameterName: Attack
   hitParameterName: Hit
   dieParameterName: Die
   deathAnimationDuration: 1.5
+  modelAnimator: {fileID: 0}
+  hasArmorPhase: 0
+  dropParameterName: Drop
+  dropAnimationDuration: 1.2
+  armorPartKeywords:
+  - armor
+  armorPartExcludeKeywords:
+  - body
+  - eye
   deathEffectPrefab: {fileID: 1828176872806910, guid: 64891a0eb28db934898420d80ca07cb3, type: 3}
   deathEffectDestroyDelay: 2
   deathEffectHeightOffset: 0.5
+  fitColliderToModel: 1
+  colliderFitRatio: 0.85
+  avoidObstacles: 1
+  avoidLookAhead: 1.2
+  stuckCheckTime: 0.4
 --- !u!114 &555670250931237649
 MonoBehaviour:
   m_ObjectHideFlags: 0

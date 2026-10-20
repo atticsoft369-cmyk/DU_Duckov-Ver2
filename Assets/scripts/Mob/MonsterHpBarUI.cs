@@ -22,10 +22,10 @@ public class MonsterHpBarUI : MonoBehaviour
 
         if (rectTransform == null)
         {
-            Debug.LogError(
-                name + ": RectTransform을 찾지 못했습니다.",
-                this
-            );
+            // 몬스터 본체(3D 오브젝트)에 잘못 붙어 있는 경우입니다.
+            // 실제 HP바는 MonsterChaser가 HPBar 프리팹으로 따로 생성하므로 이 컴포넌트는 끕니다.
+            enabled = false;
+            return;
         }
     }
 
@@ -161,4 +161,4 @@ public class MonsterHpBarUI : MonoBehaviour
                 localPosition;
         }
     }
-}
+}

@@ -413,6 +413,7 @@ public class TopDownPlayerController : MonoBehaviour
 
         ReadInput();
         UpdateMouseAimDirection();
+        UpdateSlimeGunAimIndicator();
         UpdateHeldWeaponTransform();
         UpdateAnimation();
         UpdateCooldowns();
@@ -1810,6 +1811,29 @@ public class TopDownPlayerController : MonoBehaviour
         }
 
         nextFireTime = Time.time + 1f / grenadeFireRate;
+    }
+
+    // 슬라임 건 선택 중: 마우스 위치에 발사 예고 표시
+    void UpdateSlimeGunAimIndicator()
+    {
+        if (slimeGun == null)
+        {
+            return;
+        }
+
+        bool active =
+            !isDead &&
+            currentWeapon == WeaponType.SlimeGun;
+
+        slimeGun.UpdateAimIndicator(active, transform.position, mouseWorldPosition);
+    }
+
+    void OnDisable()
+    {
+        if (slimeGun != null)
+        {
+            slimeGun.UpdateAimIndicator(false, transform.position, transform.position);
+        }
     }
 
     void ShootSlimeGun()

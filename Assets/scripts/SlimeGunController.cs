@@ -77,6 +77,27 @@ public class SlimeGunController : MonoBehaviour
     [Min(0f)]
     public float slowLingerDuration = 0.3f;
 
+    [Header("Aim Indicator (발사 예고)")]
+    [Tooltip("슬라임 건 선택 중 마우스 위치에 표시할 예고 이미지 (Slime gun Floor)")]
+    public Sprite aimIndicatorSprite;
+    [Range(0f, 1f)] public float aimReadyAlpha = 0.7f;
+    [Range(0f, 1f)] public float aimNotReadyAlpha = 0.25f;
+
+    [Header("Projectile (파란 구)")]
+    [Tooltip("발사체/장판 머티리얼 (Slime gun_floor 텍스처)")]
+    public Material slimeMaterial;
+    public float projectileSize = 0.7f;
+    public float projectileSpeed = 14f;
+    [Tooltip("포물선 최고 높이 = 거리 x 이 값 (최소 2m)")]
+    public float projectileArcRatio = 0.35f;
+    public float projectileLaunchHeight = 1.2f;
+
+    [Header("Floor Model")]
+    [Tooltip("착지 시 생성할 장판 3D 모델 (Slime gun_floor.fbx). 비우면 Floor Sprite 사용")]
+    public GameObject floorModelPrefab;
+
+    private SpriteRenderer aimIndicator;
+
     [Header("Debug (임시 테스트용)")]
     [Tooltip("Full Weapon / Reset 버튼 아래에 '게이지 100%' 테스트 버튼을 자동 생성")]
     public bool createDebugFillButton = true;
@@ -210,15 +231,45 @@ public class SlimeGunController : MonoBehaviour
 
     void OnDestroy()
     {
+        if (aimIndicator != null)
+        {
+            Destroy(aimIndicator.gameObject);
+        }
+
         if (Instance == this)
         {
             Instance = null;
         }
     }
 
+    [Tooltip("WeaponIconSelector에서 슬라임 건 슬롯 인덱스 (0부터)")]
+    public int slimeGunSlotIndex = 2;
+
     void Update()
     {
+        UpdateGaugeVisibility();
         UpdateFullBlink();
+    }
+
+    // 슬라임 건을 획득한 뒤부터 게이지 UI 표시
+    void UpdateGaugeVisibility()
+    {
+        if (gaugeFillImage == null)
+        {
+            return;
+        }
+
+        Transform gaugeRoot = gaugeFillImage.transform.parent != null
+            ? gaugeFillImage.transform.parent
+            : gaugeFillImage.transform;
+
+        bool unlocked = WeaponIconSelector.Instance != null &&
+                        WeaponIconSelector.Instance.IsUnlocked(slimeGunSlotIndex);
+
+        if (gaugeRoot.gameObject.activeSelf != unlocked)
+        {
+            gaugeRoot.gameObject.SetActive(unlocked);
+        }
     }
 
     /// <summary>
@@ -273,7 +324,8 @@ public class SlimeGunController : MonoBehaviour
 
         Vector3 groundPoint = FindGroundPoint(target, shooterPosition.y);
 
-        SpawnFloor(groundPoint);
+        // 플레이어에게서 파란 구가 포물선으로 날아가 착지 지점에 장판 생성
+        StartCoroutine(ProjectileRoutine(shooterPosition + Vector3.up * projectileLaunchHeight, groundPoint));
 
         gauge = Mathf.Clamp01(gauge - gaugeCostPerShot);
         UpdateGaugeUI();
@@ -322,6 +374,118 @@ public class SlimeGunController : MonoBehaviour
         return horizontalPosition;
     }
 
+    // ---------------- 발사 예고 ----------------
+
+    public void UpdateAimIndicator(bool active, Vector3 shooterPosition, Vector3 mousePosition)
+    {
+        if (!active || aimIndicatorSprite == null)
+        {
+            if (aimIndicator != null && aimIndicator.gameObject.activeSelf)
+            {
+                aimIndicator.gameObject.SetActive(false);
+            }
+            return;
+        }
+
+        if (aimIndicator == null)
+        {
+            GameObject go = new GameObject("SlimeGun AimIndicator");
+            aimIndicator = go.AddComponent<SpriteRenderer>();
+            aimIndicator.sprite = aimIndicatorSprite;
+            aimIndicator.sortingOrder = 10;
+            aimIndicator.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            aimIndicator.receiveShadows = false;
+            go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            Vector2 s = aimIndicatorSprite.bounds.size;
+            go.transform.localScale = new Vector3(
+                s.x > 0f ? floorSize.x / s.x : 1f,
+                s.y > 0f ? floorSize.y / s.y : 1f,
+                1f);
+        }
+
+        if (!aimIndicator.gameObject.activeSelf)
+        {
+            aimIndicator.gameObject.SetActive(true);
+        }
+
+        Vector3 target = ClampToRange(shooterPosition, mousePosition);
+        Vector3 ground = FindGroundPoint(target, shooterPosition.y);
+        aimIndicator.transform.position = ground + Vector3.up * (floorHeightOffset + 0.02f);
+
+        float a = IsReady
+            ? aimReadyAlpha * (0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 6f))
+            : aimNotReadyAlpha;
+
+        Color c = Color.white;
+        c.a = a;
+        aimIndicator.color = c;
+    }
+
+    Vector3 ClampToRange(Vector3 shooterPosition, Vector3 target)
+    {
+        if (maxRange > 0f)
+        {
+            Vector3 offset = target - shooterPosition;
+            offset.y = 0f;
+
+            if (offset.magnitude > maxRange)
+            {
+                return shooterPosition + offset.normalized * maxRange;
+            }
+        }
+
+        return target;
+    }
+
+    // ---------------- 발사체 ----------------
+
+    System.Collections.IEnumerator ProjectileRoutine(Vector3 start, Vector3 ground)
+    {
+        GameObject ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        ball.name = "SlimeGun Projectile";
+        Destroy(ball.GetComponent<Collider>());
+        ball.transform.localScale = Vector3.one * projectileSize;
+
+        Renderer r = ball.GetComponent<Renderer>();
+        if (slimeMaterial != null)
+        {
+            r.sharedMaterial = slimeMaterial;
+        }
+        else
+        {
+            r.material.color = new Color(0.2f, 0.5f, 1f);
+        }
+
+        Vector3 end = ground + Vector3.up * (projectileSize * 0.5f);
+        Vector3 flat = end - start;
+        flat.y = 0f;
+
+        float distance = flat.magnitude;
+        float duration = Mathf.Clamp(distance / Mathf.Max(0.1f, projectileSpeed), 0.25f, 2f);
+        float arc = Mathf.Max(2f, distance * projectileArcRatio);
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / duration);
+
+            Vector3 p = Vector3.Lerp(start, end, k);
+            p.y += arc * 4f * k * (1f - k);
+            ball.transform.position = p;
+
+            // 날아가며 살짝 늘어나는 젤리 느낌
+            float stretch = 1f + 0.2f * Mathf.Sin(k * Mathf.PI);
+            ball.transform.localScale = new Vector3(projectileSize / stretch, projectileSize * stretch, projectileSize / stretch);
+
+            yield return null;
+        }
+
+        Destroy(ball);
+        SpawnFloor(ground);
+    }
+
     void SpawnFloor(Vector3 groundPoint)
     {
         Vector3 position = groundPoint + Vector3.up * floorHeightOffset;
@@ -330,6 +494,57 @@ public class SlimeGunController : MonoBehaviour
         if (floorPrefab != null)
         {
             floor = Instantiate(floorPrefab, position, Quaternion.identity);
+        }
+        else if (floorModelPrefab != null)
+        {
+            floor = new GameObject("SlimeGun Floor");
+            floor.transform.position = position;
+
+            GameObject model = Instantiate(floorModelPrefab, floor.transform);
+            model.name = "Model";
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+
+            foreach (Collider col in model.GetComponentsInChildren<Collider>())
+            {
+                Destroy(col);
+            }
+
+            bool has = false;
+            Bounds b = new Bounds(position, Vector3.zero);
+
+            foreach (Renderer mr in model.GetComponentsInChildren<Renderer>())
+            {
+                if (slimeMaterial != null)
+                {
+                    Material[] mats = mr.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++) mats[i] = slimeMaterial;
+                    mr.sharedMaterials = mats;
+                }
+
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+                if (!has) { b = mr.bounds; has = true; }
+                else b.Encapsulate(mr.bounds);
+            }
+
+            // 모델 가로/세로를 장판 크기(floorSize)에 맞춤, 높이는 가로 비율 따라감
+            if (has && b.size.x > 0.001f && b.size.z > 0.001f)
+            {
+                Vector3 ls = model.transform.localScale;
+                float sx = floorSize.x / b.size.x;
+                float sz = floorSize.y / b.size.z;
+                model.transform.localScale = new Vector3(ls.x * sx, ls.y * Mathf.Min(sx, sz), ls.z * sz);
+
+                // 바닥에 붙도록 모델 아래면을 지면에 맞춤
+                Bounds nb = new Bounds();
+                bool first = true;
+                foreach (Renderer mr in model.GetComponentsInChildren<Renderer>())
+                {
+                    if (first) { nb = mr.bounds; first = false; } else nb.Encapsulate(mr.bounds);
+                }
+                model.transform.position += Vector3.up * (position.y - nb.min.y);
+            }
         }
         else
         {

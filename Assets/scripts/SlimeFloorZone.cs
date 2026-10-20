@@ -133,6 +133,13 @@ public class SlimeFloorZone : MonoBehaviour
 
         float alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / fadeDuration);
 
+        // 3D 모델 장판(스프라이트 없음)은 크기를 줄이며 사라집니다.
+        if (spriteRenderers.Length == 0)
+        {
+            transform.localScale = originalScale * Mathf.Max(0.01f, alpha);
+            return;
+        }
+
         for (int i = 0; i < spriteRenderers.Length; i++)
         {
             if (spriteRenderers[i] == null)

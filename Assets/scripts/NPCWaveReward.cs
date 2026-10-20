@@ -87,7 +87,8 @@ public class NPCWaveReward : MonoBehaviour
     /// </summary>
     public void AddPendingReward(int slotNumber, string rewardName)
     {
-        if (slotNumber <= 0 || pendingSlots.Contains(slotNumber))
+        // 회복약처럼 같은 슬롯도 여러 개 쌓일 수 있습니다. (무기는 이미 있으면 지급 시 무시됨)
+        if (slotNumber <= 0)
         {
             return;
         }

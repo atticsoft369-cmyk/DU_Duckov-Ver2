@@ -37,6 +37,28 @@ public class MobTableSpawner : MonoBehaviour
     [Min(0f)]
     public float gameStartDelay = 3f;
 
+    [Header("Start Countdown / Play Time")]
+    [Tooltip("게임 시작 시 5,4,3,2,1 카운트 (초)")]
+    public int startCountdownSeconds = 5;
+
+    [Tooltip("카운트 마지막에 표시할 문구")]
+    public string startCountdownGoText = "START";
+
+    [Tooltip("최종 클리어 타임 문구. {0} = mm:ss")]
+    public string clearTimeFormat = "CLEAR TIME  {0}";
+
+    public Vector2 clearTimePosition = new Vector2(0f, -120f);
+    public float clearTimeFontSize = 64f;
+
+    [Header("Heal Reward")]
+    [Tooltip("이 스테이지부터 매 웨이브 정비시간마다 NPC가 회복약 1개를 지급")]
+    public int healEveryWaveFromStage = 2;
+    public int healSlotNumber = 5;
+
+    private float playTime;
+    private bool playClockRunning;
+    private bool skipNextWaveStartMessage;
+
     [Tooltip("WAVE START 메시지를 표시하는 시간")]
     [Min(0f)]
     public float waveStartMessageDuration = 2f;
@@ -370,13 +392,64 @@ public class MobTableSpawner : MonoBehaviour
 
     private IEnumerator GameStartRoutine()
     {
-        if (gameStartDelay > 0f)
+        playTime = 0f;
+        playClockRunning = false;
+        UpdatePlayClockUI();
+
+        // 5, 4, 3, 2, 1, START
+        if (waveStartMessage != null && startCountdownSeconds > 0)
+        {
+            waveStartMessage.gameObject.SetActive(true);
+
+            for (int n = startCountdownSeconds; n > 0; n--)
+            {
+                waveStartMessage.text = n.ToString();
+                yield return new WaitForSeconds(1f);
+            }
+
+            waveStartMessage.text = startCountdownGoText;
+            yield return new WaitForSeconds(1f);
+
+            waveStartMessage.gameObject.SetActive(false);
+            skipNextWaveStartMessage = true;
+        }
+        else if (gameStartDelay > 0f)
         {
             yield return new WaitForSeconds(gameStartDelay);
         }
 
+        // 여기서부터 전체 플레이 시간 측정 (웨이브 제한시간 없음)
+        playClockRunning = true;
+
         currentWaveIndex = 0;
         StartCurrentWave();
+    }
+
+    private void Update()
+    {
+        if (!playClockRunning || gameCleared)
+        {
+            return;
+        }
+
+        playTime += Time.deltaTime;
+        UpdatePlayClockUI();
+    }
+
+    private void UpdatePlayClockUI()
+    {
+        if (waveCounterText == null)
+        {
+            return;
+        }
+
+        if (!waveCounterText.gameObject.activeSelf)
+        {
+            waveCounterText.gameObject.SetActive(true);
+        }
+
+        waveCounterText.color = waveCounterOriginalColor;
+        waveCounterText.text = FormatPlayTime(playTime);
     }
 
     private void StartCurrentWave()
@@ -469,9 +542,16 @@ public class MobTableSpawner : MonoBehaviour
         StopWaveTimer();
         ShowWaveTimerPreview(waveData.waveTimer);
 
-        yield return StartCoroutine(
-            ShowWaveStartMessage(waveData.level)
-        );
+        if (skipNextWaveStartMessage)
+        {
+            skipNextWaveStartMessage = false;
+        }
+        else
+        {
+            yield return StartCoroutine(
+                ShowWaveStartMessage(waveData.level)
+            );
+        }
 
         Debug.Log(
             $"===== WAVE {waveData.level} 시작 ====="
@@ -808,11 +888,6 @@ public class MobTableSpawner : MonoBehaviour
             monsterCountText.gameObject.SetActive(false);
         }
 
-        if (waveCounterText != null)
-        {
-            waveCounterText.gameObject.SetActive(false);
-        }
-
         SetWaveClearMessageVisible(true);
 
         if (waveClearMessageDuration > 0f)
@@ -871,6 +946,8 @@ public class MobTableSpawner : MonoBehaviour
         // NPC가 있으면 NPC에게 등록 -> 플레이어가 NPC 앞에서 Space로 수령
         if (rewardNpc != null)
         {
+            bool healIncluded = false;
+
             foreach (StageReward reward in stageRewards)
             {
                 if (reward == null || reward.beforeStage != stageLevel)
@@ -878,7 +955,18 @@ public class MobTableSpawner : MonoBehaviour
                     continue;
                 }
 
+                if (reward.slotNumber == healSlotNumber)
+                {
+                    healIncluded = true;
+                }
+
                 rewardNpc.AddPendingReward(reward.slotNumber, reward.name);
+            }
+
+            // 지정 스테이지 이후 매 웨이브: 회복약 1개
+            if (!healIncluded && stageLevel >= healEveryWaveFromStage)
+            {
+                rewardNpc.AddPendingReward(healSlotNumber, "Heal");
             }
 
             return;
@@ -1093,6 +1181,7 @@ public class MobTableSpawner : MonoBehaviour
 
         gameCleared = true;
         waveCompleted = true;
+        playClockRunning = false;
 
         StopWaveTimer();
 
@@ -1162,6 +1251,7 @@ public class MobTableSpawner : MonoBehaviour
         }
 
         canvas.SetActive(true);
+        ShowClearTime(canvas);
 
         // 클리어 창 외의 모든 UI(다른 루트 Canvas) 숨김
         foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
@@ -1214,6 +1304,49 @@ public class MobTableSpawner : MonoBehaviour
         return true;
     }
 
+    private void ShowClearTime(GameObject canvas)
+    {
+        Transform existing = canvas.transform.Find("Clear Time");
+        TextMeshProUGUI text;
+
+        if (existing != null)
+        {
+            text = existing.GetComponent<TextMeshProUGUI>();
+        }
+        else
+        {
+            GameObject go = new GameObject("Clear Time", typeof(RectTransform));
+            go.layer = canvas.layer;
+            go.transform.SetParent(canvas.transform, false);
+            go.transform.SetAsLastSibling();
+
+            RectTransform rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(900f, 120f);
+
+            text = go.AddComponent<TextMeshProUGUI>();
+            TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Lilita_One/LilitaOne-Regular SDF");
+            if (font != null) text.font = font;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.white;
+            text.outlineWidth = 0.25f;
+            text.outlineColor = new Color32(70, 35, 10, 255);
+            text.raycastTarget = false;
+        }
+
+        if (text == null)
+        {
+            return;
+        }
+
+        text.rectTransform.anchoredPosition = clearTimePosition;
+        text.fontSize = clearTimeFontSize;
+        text.text = string.Format(clearTimeFormat, FormatPlayTime(playTime));
+
+        Debug.Log("최종 클리어 타임: " + FormatPlayTime(playTime));
+    }
+
     private void GoToTitleFromGameClear()
     {
         FindGameStartManagerIfNeeded();
@@ -1244,6 +1377,12 @@ public class MobTableSpawner : MonoBehaviour
      */
     private void ShowWaveTimerPreview(float waveTimer)
     {
+        // 웨이브 제한시간 없음: 시계는 전체 플레이 시간을 표시합니다.
+        return;
+    }
+
+    private void UnusedShowWaveTimerPreview(float waveTimer)
+    {
         if (waveCounterText == null)
         {
             return;
@@ -1256,6 +1395,13 @@ public class MobTableSpawner : MonoBehaviour
     }
 
     private void StartWaveTimer(float waveTimer)
+    {
+        // 웨이브 제한시간 없음 (시간 초과 게임오버 없음)
+        StopWaveTimer();
+        return;
+    }
+
+    private void UnusedStartWaveTimer(float waveTimer)
     {
         StopWaveTimer();
 
@@ -1414,6 +1560,7 @@ public class MobTableSpawner : MonoBehaviour
      */
     public void StopWavesForGameOver()
     {
+        playClockRunning = false;
         gameCleared = true;
         waveCompleted = true;
         spawnFinished = true;
@@ -1542,6 +1689,12 @@ public class MobTableSpawner : MonoBehaviour
             gameOverCanvas = obj;
             return;
         }
+    }
+
+    private static string FormatPlayTime(float seconds)
+    {
+        int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
+        return $"{total / 60:00}:{total % 60:00}";
     }
 
     private string FormatWaveTimer(float seconds)

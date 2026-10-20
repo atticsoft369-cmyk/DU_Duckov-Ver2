@@ -55,9 +55,16 @@ public static class MonsterModelSetup
             moveClip = "move", attackClip = "attack", hitClip = "hit", dieClip = "die", dropClip = null,
             copyFrom = "Slime_Normal", hitDelayRatio = 0.58f
         },
+        // Green(노멀): attack 1.0s = 0.43s 뒤로 움츠렸다가 0.6s에 앞으로 튀어나감
+        new MonsterDef
+        {
+            prefab = "Slime_Normal", folder = "Green", prefix = "Green",
+            moveClip = "move", attackClip = "attack", hitClip = "hit", dieClip = "die", dropClip = null,
+            hitDelayRatio = 0.6f
+        },
     };
 
-    [MenuItem("Tools/Monster/Setup Armor & Spin Slime")]
+    [MenuItem("Tools/Monster/Setup Monsters (Armor, Spin, Angel, Green)")]
     public static void SetupAll()
     {
         foreach (MonsterDef def in Defs)
@@ -66,7 +73,7 @@ public static class MonsterModelSetup
         }
 
         AssetDatabase.SaveAssets();
-        Debug.Log("[MonsterSetup] 완료: Slime_Armor(Armor slime), Slime_Dash(Spin slime), Slime_Angel(Angel slime)");
+        Debug.Log("[MonsterSetup] 완료: Slime_Armor(Armor), Slime_Dash(Spin), Slime_Angel(Angel), Slime_Normal(Green)");
     }
 
     static string AnimFbx(MonsterDef d, string clip) =>

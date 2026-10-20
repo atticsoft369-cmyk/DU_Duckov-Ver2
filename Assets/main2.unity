@@ -2002,7 +2002,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a9f7817ceab24f148b59a3fed7ca2822, type: 3}
+  m_Sprite: {fileID: 21300000, guid: df5cbb5860b255443b4435414105d1d4, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2260,6 +2260,14 @@ MonoBehaviour:
   grayscaleMaterial: {fileID: 2100000, guid: d5293a048eb971741a3941039648e800, type: 2}
   hideLockedIcons: 1
   lockedAlpha: 0.25
+  healCount: 0
+  healCountOffset: {x: -14, y: -14}
+  healCountFontSize: 34
+  showSlotAmmo: 1
+  slotAmmoBackground: {fileID: 0}
+  slotAmmoSize: {x: 110, y: 32}
+  slotAmmoOffsetY: 0
+  slotAmmoFontSize: 24
   useSmoothScale: 1
   scaleSpeed: 12
 --- !u!1 &382087949 stripped
@@ -2829,7 +2837,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -0.4}
 --- !u!114 &462346825
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5955,7 +5963,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d2fc769b9709cd74282e37c6a882b96e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ddebb4e84f8d94940965c544a49ce5a5, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -7241,6 +7249,13 @@ MonoBehaviour:
   groundOffset: 0.02
   maxWave: 5
   gameStartDelay: 3
+  startCountdownSeconds: 5
+  startCountdownGoText: START
+  clearTimeFormat: CLEAR TIME  {0}
+  clearTimePosition: {x: 0, y: -120}
+  clearTimeFontSize: 64
+  healEveryWaveFromStage: 2
+  healSlotNumber: 5
   waveStartMessageDuration: 2
   spawnY: 0
   spawnAreaPadding: 1
@@ -7391,7 +7406,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -0.4}
 --- !u!114 &1514532913
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7596,7 +7611,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5935723e230076d4eace1c2fd5e438fb, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5935723e230076d4eace1c2fd5e438fb, type: 3}
       propertyPath: m_LocalRotation.w
@@ -8507,7 +8522,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: f8df9172b48144879037d6a8adeb46e1, type: 2}
     - target: {fileID: 6599150452196774901, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.06
+      value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 7223980773838353972, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -8794,9 +8809,6 @@ PrefabInstance:
       addedObject: {fileID: 1616161779}
     - targetCorrespondingSourceObject: {fileID: 5827434664347584847, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1733360175}
-    - targetCorrespondingSourceObject: {fileID: 5827434664347584847, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1733360176}
     - targetCorrespondingSourceObject: {fileID: 9145062959825852131, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
       insertIndex: -1
@@ -8949,27 +8961,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 5827434664347584847, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
   m_PrefabInstance: {fileID: 1709335147}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &1733360175
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1733360171}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.038363352, y: 0.020000005, z: 0.16480553}
-  m_Center: {x: -0.009153495, y: 0.0000000037252903, z: -0.07}
 --- !u!114 &1733360176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9586,7 +9577,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -0.4}
 --- !u!114 &1881783646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10996,11 +10987,13 @@ MonoBehaviour:
   bulletSpawnHeight: 0.5
   bulletRotationOffsetEuler: {x: 0, y: 90, z: 0}
   pistolDamage: 3
+  pistolBulletSpeed: 0
   pistolFireRate: 2
   pistolMaxShotsBeforeCooldown: 12
   pistolCooldownDuration: 3
   pistolBulletForwardOffset: 1.1
   rifleDamage: 2
+  rifleBulletSpeed: 0
   rifleFireRate: 10
   rifleMaxShotsBeforeCooldown: 30
   rifleCooldownDuration: 3
@@ -11134,7 +11127,17 @@ MonoBehaviour:
   floorFadeDuration: 1
   slowMultiplier: 0.4
   slowLingerDuration: 0.3
+  aimIndicatorSprite: {fileID: 21300000, guid: 6e954d99a9738b7459fbf66fbee02aff, type: 3}
+  aimReadyAlpha: 0.7
+  aimNotReadyAlpha: 0.25
+  slimeMaterial: {fileID: 2100000, guid: ff01cdf067f927145a68c4825bd527ba, type: 2}
+  projectileSize: 0.7
+  projectileSpeed: 14
+  projectileArcRatio: 0.35
+  projectileLaunchHeight: 1.2
+  floorModelPrefab: {fileID: 919132149155446097, guid: 07006890a130ee7488e0928e8879ded2, type: 3}
   createDebugFillButton: 1
+  slimeGunSlotIndex: 2
 --- !u!1 &2115271284 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4939057017529109360, guid: 7bc7f83eeec62794fbf4469864f893bd, type: 3}
@@ -11160,7 +11163,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -0.4}
 --- !u!114 &2115271287
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -61,6 +61,9 @@ public class BossMonsterChaser : MonoBehaviour
     [Tooltip("새 모델(자식)의 Animator. 비워두면 기존 방식으로 찾습니다.")]
     public Animator modelAnimator;
 
+    [Tooltip("보스는 등장 위치에 고정 (이동하지 않음, 회전/스킬/근접공격만)")]
+    public bool stationary = true;
+
     [Range(0f, 100f)] public float kingFloorChance = 50f;
     [Range(0f, 100f)] public float kingShotChance = 50f;
 
@@ -2068,6 +2071,15 @@ public class BossMonsterChaser : MonoBehaviour
         if (direction.sqrMagnitude <= 0.001f)
         {
             StopMove();
+            SetMoveAnimation(0f);
+            return;
+        }
+
+        // 고정형 보스: 이동 없이 목표 방향만 바라봅니다.
+        if (stationary)
+        {
+            StopMove();
+            RotateToTarget(direction.normalized);
             SetMoveAnimation(0f);
             return;
         }

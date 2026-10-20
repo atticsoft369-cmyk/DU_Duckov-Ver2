@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,7 @@ public class WeaponIconSelector : MonoBehaviour
     private static bool persistentStateInitialized = false;
     private static bool[] persistentUnlocked;
     private static int persistentSelectedIndex = 0;
+    private static int persistentHealCount = 0;
 
     // 무기 전체 초기화는 Reset 버튼을 눌렀을 때만 허용합니다.
     // 웨이브 시작/종료나 다른 스크립트가 ResetUnlockState()를 호출해도 무시합니다.
@@ -82,6 +84,31 @@ public class WeaponIconSelector : MonoBehaviour
     public bool hideLockedIcons = true;
     public float lockedAlpha = 0.25f;
 
+    [Header("Heal Count")]
+    [Tooltip("회복 아이템 보유 개수")]
+    public int healCount = 0;
+
+    [Tooltip("회복 개수 글자 위치 (슬롯 기준, 오른쪽 위)")]
+    public Vector2 healCountOffset = new Vector2(-14f, -14f);
+    public float healCountFontSize = 34f;
+
+    [Header("Selected Slot Ammo")]
+    [Tooltip("선택한 무기 슬롯 위에 탄환 표시")]
+    public bool showSlotAmmo = true;
+
+    [Tooltip("탄환 표시 배경 (비우면 플레이어의 Ammo Background Sprite = BULLET 사용)")]
+    public Sprite slotAmmoBackground;
+
+    public Vector2 slotAmmoSize = new Vector2(110f, 32f);
+    [Tooltip("탄환 표시 중심의 세로 위치. 0 = 슬롯 윗 라인에 걸쳐서 표시")]
+    public float slotAmmoOffsetY = 0f;
+    public float slotAmmoFontSize = 24f;
+
+    private TextMeshProUGUI healCountText;
+    private RectTransform slotAmmoRoot;
+    private TextMeshProUGUI slotAmmoText;
+    private TopDownPlayerController cachedPlayer;
+
     [Header("Animation Settings")]
     [Tooltip("선택 시 크기가 부드럽게 변경")]
     public bool useSmoothScale = true;
@@ -102,6 +129,7 @@ public class WeaponIconSelector : MonoBehaviour
         persistentStateInitialized = false;
         persistentUnlocked = null;
         persistentSelectedIndex = 0;
+        persistentHealCount = 0;
     }
 
     void Awake()
@@ -139,6 +167,147 @@ public class WeaponIconSelector : MonoBehaviour
         // 다른 스크립트가 Slot/Image를 SetActive(false) 하더라도
         // 해금 상태가 유지되어 있다면 즉시 다시 복구합니다.
         EnforcePersistentWeaponVisibility();
+    }
+
+    void LateUpdate()
+    {
+        UpdateHealCountUI();
+        UpdateSlotAmmoUI();
+    }
+
+    // ---------------- 회복 아이템 개수 ----------------
+
+    void UpdateHealCountUI()
+    {
+        if (healSlotIndex < 0 || healSlotIndex >= weaponIcons.Length)
+        {
+            return;
+        }
+
+        WeaponIcon heal = weaponIcons[healSlotIndex];
+        RectTransform slot = heal.backgroundImage != null ? heal.backgroundImage.rectTransform : heal.scaleRoot;
+
+        if (slot == null)
+        {
+            return;
+        }
+
+        if (healCountText == null)
+        {
+            GameObject go = new GameObject("Heal Count", typeof(RectTransform));
+            go.layer = slot.gameObject.layer;
+            go.transform.SetParent(slot, false);
+
+            RectTransform rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(1f, 1f);
+            rt.sizeDelta = new Vector2(80f, 50f);
+
+            healCountText = go.AddComponent<TextMeshProUGUI>();
+            TMP_Text label = slot.GetComponentInChildren<TMP_Text>(true);
+            if (label != null && label != healCountText) healCountText.font = label.font;
+            healCountText.alignment = TextAlignmentOptions.TopRight;
+            healCountText.color = Color.white;
+            healCountText.outlineWidth = 0.25f;
+            healCountText.outlineColor = new Color32(40, 20, 10, 255);
+            healCountText.raycastTarget = false;
+        }
+
+        healCountText.rectTransform.anchoredPosition = healCountOffset;
+        healCountText.fontSize = healCountFontSize;
+
+        // 한 번 획득한 뒤에는 0개여도 계속 표시
+        bool show = heal.unlocked;
+        if (healCountText.gameObject.activeSelf != show)
+        {
+            healCountText.gameObject.SetActive(show);
+        }
+
+        string text = healCount.ToString();
+        if (healCountText.text != text)
+        {
+            healCountText.text = text;
+        }
+    }
+
+    // ---------------- 선택 무기 탄환 표시 ----------------
+
+    void UpdateSlotAmmoUI()
+    {
+        if (!showSlotAmmo || weaponIcons == null || selectedIndex < 0 || selectedIndex >= weaponIcons.Length)
+        {
+            return;
+        }
+
+        if (cachedPlayer == null)
+        {
+            cachedPlayer = FindFirstObjectByType<TopDownPlayerController>(FindObjectsInactive.Include);
+        }
+
+        WeaponIcon icon = weaponIcons[selectedIndex];
+        RectTransform slot = icon.backgroundImage != null ? icon.backgroundImage.rectTransform : icon.scaleRoot;
+
+        if (slot == null || cachedPlayer == null)
+        {
+            return;
+        }
+
+        if (slotAmmoRoot == null)
+        {
+            Sprite bg = slotAmmoBackground != null ? slotAmmoBackground : cachedPlayer.ammoBackgroundSprite;
+
+            GameObject root = new GameObject("Slot Ammo", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            slotAmmoRoot = root.GetComponent<RectTransform>();
+
+            Image img = root.GetComponent<Image>();
+            img.sprite = bg;
+            img.color = bg != null ? Color.white : new Color(0.12f, 0.08f, 0.05f, 0.9f);
+            img.raycastTarget = false;
+
+            GameObject textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(slotAmmoRoot, false);
+
+            RectTransform trt = textGo.GetComponent<RectTransform>();
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.offsetMin = Vector2.zero;
+            trt.offsetMax = Vector2.zero;
+
+            slotAmmoText = textGo.AddComponent<TextMeshProUGUI>();
+            if (cachedPlayer.ammoText != null) slotAmmoText.font = cachedPlayer.ammoText.font;
+            slotAmmoText.alignment = TextAlignmentOptions.Center;
+            slotAmmoText.color = Color.white;
+            slotAmmoText.raycastTarget = false;
+            slotAmmoText.textWrappingMode = TextWrappingModes.NoWrap;
+        }
+
+        // 선택 슬롯이 바뀌면 그 슬롯 위로 옮깁니다. (슬롯 확대도 같이 따라감)
+        if (slotAmmoRoot.parent != slot)
+        {
+            slotAmmoRoot.SetParent(slot, false);
+            slotAmmoRoot.gameObject.layer = slot.gameObject.layer;
+        }
+
+        slotAmmoRoot.anchorMin = slotAmmoRoot.anchorMax = new Vector2(0.5f, 1f);
+        // 슬롯 윗 라인에 배지 중심을 맞춰 겹치게 표시
+        slotAmmoRoot.pivot = new Vector2(0.5f, 0.5f);
+        slotAmmoRoot.anchoredPosition = new Vector2(0f, slotAmmoOffsetY);
+        slotAmmoRoot.sizeDelta = slotAmmoSize;
+        slotAmmoRoot.localScale = Vector3.one;
+        slotAmmoText.fontSize = slotAmmoFontSize;
+
+        string ammo = cachedPlayer.ammoText != null ? cachedPlayer.ammoText.text : "";
+        bool show = icon.unlocked && !string.IsNullOrEmpty(ammo);
+
+        if (slotAmmoRoot.gameObject.activeSelf != show)
+        {
+            slotAmmoRoot.gameObject.SetActive(show);
+        }
+
+        if (show && slotAmmoText.text != ammo)
+        {
+            slotAmmoText.text = ammo;
+        }
     }
 
     void InitializeIcons()
@@ -204,8 +373,11 @@ public class WeaponIconSelector : MonoBehaviour
             }
 
             persistentSelectedIndex = 0;
+            persistentHealCount = healCount;
             persistentStateInitialized = true;
         }
+
+        healCount = persistentHealCount;
 
         selectedIndex =
             Mathf.Clamp(
@@ -265,6 +437,8 @@ public class WeaponIconSelector : MonoBehaviour
 
         persistentSelectedIndex =
             selectedIndex;
+
+        persistentHealCount = healCount;
 
         persistentStateInitialized = true;
     }
@@ -410,7 +584,8 @@ public class WeaponIconSelector : MonoBehaviour
             return;
         }
 
-        if (weaponIcons[index].unlocked)
+        // 회복 아이템은 이미 있어도 개수가 늘어나므로 계속 지급합니다.
+        if (weaponIcons[index].unlocked && index != healSlotIndex)
         {
             return;
         }
@@ -523,6 +698,11 @@ public class WeaponIconSelector : MonoBehaviour
 
         weaponIcons[index].unlocked = true;
 
+        if (index == healSlotIndex)
+        {
+            healCount++;
+        }
+
         SetSlotActive(index, true);
         SavePersistentState();
 
@@ -545,6 +725,8 @@ public class WeaponIconSelector : MonoBehaviour
             weaponIcons[i].unlocked = true;
             SetSlotActive(i, true);
         }
+
+        healCount = Mathf.Max(healCount, 1);
 
         SavePersistentState();
 
@@ -597,7 +779,7 @@ public class WeaponIconSelector : MonoBehaviour
     {
         // WeaponIcon 배열 기준 Heal = index 3
         // 실제 UI에서는 Slot 5(F키)로 배치되어 있어도 상관없습니다.
-        return IsUnlocked(healSlotIndex);
+        return IsUnlocked(healSlotIndex) && healCount > 0;
     }
 
     /// <summary>
@@ -613,27 +795,13 @@ public class WeaponIconSelector : MonoBehaviour
             return;
         }
 
-        weaponIcons[healIndex].unlocked = false;
-
-        // Heal 슬롯만 숨김
-        SetSlotActive(healIndex, false);
-
-        // 혹시 이전 상태에서 커져 있었다면 다음 활성화를 위해 원래 크기로 복원
-        if (weaponIcons[healIndex].scaleRoot != null)
-        {
-            weaponIcons[healIndex].scaleRoot.localScale =
-                weaponIcons[healIndex].originalScale * unselectedScale;
-        }
-
-        if (weaponIcons[healIndex].iconImage != null)
-        {
-            weaponIcons[healIndex].iconImage.rectTransform.localScale =
-                weaponIcons[healIndex].originalIconScale * unselectedScale;
-        }
+        // 개수만 줄이고 아이콘은 계속 표시합니다. (0개면 흐리게)
+        healCount = Mathf.Max(0, healCount - 1);
 
         SavePersistentState();
+        ApplyIconVisuals();
 
-        Debug.Log("Heal 아이템만 소비됨. 현재 무기 선택 상태는 유지됩니다.");
+        Debug.Log("Heal 아이템 사용. 남은 개수: " + healCount);
     }
 
     public void ResetUnlockState()
@@ -649,6 +817,7 @@ public class WeaponIconSelector : MonoBehaviour
         }
 
         selectedIndex = 0;
+        healCount = 0;
 
         for (int i = 0; i < weaponIcons.Length; i++)
         {
@@ -914,6 +1083,24 @@ public class WeaponIconSelector : MonoBehaviour
 
             SetSlotActive(i, true);
 
+            // 회복 아이템을 다 쓰면 아이콘은 남기고 흐리게
+            if (i == healSlotIndex && healCount <= 0)
+            {
+                weaponIcon.iconImage.material = grayscaleMaterial;
+                Color dim = Color.white;
+                dim.a = 0.45f;
+                weaponIcon.iconImage.color = dim;
+                continue;
+            }
+
+            // 회복 아이템을 가지고 있으면 선택하지 않아도 밝게 표시
+            if (i == healSlotIndex)
+            {
+                weaponIcon.iconImage.material = null;
+                weaponIcon.iconImage.color = Color.white;
+                continue;
+            }
+
             if (isSelected)
             {
                 weaponIcon.iconImage.material =
@@ -947,19 +1134,22 @@ public class WeaponIconSelector : MonoBehaviour
         WeaponIcon weaponIcon =
             weaponIcons[index];
 
-        // 현재 프로젝트에서는 Slot 배경과 실제 아이콘이
-        // 서로 다른 Hierarchy에 있을 수 있으므로 둘 다 개별적으로 제어합니다.
-        if (weaponIcon.scaleRoot != null)
+        // 슬롯 배경은 무기가 없어도 처음부터 항상 표시합니다.
+        if (weaponIcon.scaleRoot != null &&
+            !weaponIcon.scaleRoot.gameObject.activeSelf)
         {
-            weaponIcon.scaleRoot.gameObject.SetActive(active);
+            weaponIcon.scaleRoot.gameObject.SetActive(true);
         }
 
-        if (weaponIcon.backgroundImage != null)
+        if (weaponIcon.backgroundImage != null &&
+            !weaponIcon.backgroundImage.gameObject.activeSelf)
         {
-            weaponIcon.backgroundImage.gameObject.SetActive(active);
+            weaponIcon.backgroundImage.gameObject.SetActive(true);
         }
 
-        if (weaponIcon.iconImage != null)
+        // 무기 아이콘은 획득한 뒤부터 표시 (한 번 획득하면 사라지지 않음)
+        if (weaponIcon.iconImage != null &&
+            weaponIcon.iconImage.gameObject.activeSelf != active)
         {
             weaponIcon.iconImage.gameObject.SetActive(active);
         }

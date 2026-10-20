@@ -186,6 +186,7 @@ public class MonsterChaser : MonoBehaviour
 
         ApplyMonsterStatsFromCsv();
         ApplyGameControlStats();
+        FitColliderToModel();
 
         currentHp =
             Mathf.Max(1, maxHp);
@@ -477,6 +478,73 @@ public class MonsterChaser : MonoBehaviour
             "종",
             this
         );
+    }
+
+    [Header("Collider Fit")]
+    [Tooltip("실제 보이는 모델 크기에 맞춰 Sphere Collider를 자동 조정 (크기를 바꿔도 멀리서 때리지 않게)")]
+    public bool fitColliderToModel = true;
+
+    [Tooltip("모델 가로 반경 대비 콜라이더 반경 비율")]
+    [Range(0.3f, 1.5f)]
+    public float colliderFitRatio = 0.85f;
+
+    // 보이는 모델(켜진 MeshRenderer/SkinnedMeshRenderer) 범위로 Sphere Collider 크기/중심을 맞춥니다.
+    private void FitColliderToModel()
+    {
+        if (!fitColliderToModel)
+        {
+            return;
+        }
+
+        SphereCollider sphere = GetComponent<SphereCollider>();
+
+        if (sphere == null)
+        {
+            return;
+        }
+
+        bool found = false;
+        Bounds b = new Bounds(transform.position, Vector3.zero);
+
+        foreach (Renderer r in GetComponentsInChildren<Renderer>())
+        {
+            if (!(r is MeshRenderer || r is SkinnedMeshRenderer) ||
+                !r.enabled ||
+                r.gameObject.name.Contains("Minimap"))
+            {
+                continue;
+            }
+
+            if (!found)
+            {
+                b = r.bounds;
+                found = true;
+            }
+            else
+            {
+                b.Encapsulate(r.bounds);
+            }
+        }
+
+        if (!found)
+        {
+            return;
+        }
+
+        Vector3 lossy = transform.lossyScale;
+        float scale = Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+
+        if (scale < 0.0001f)
+        {
+            return;
+        }
+
+        float worldRadius = Mathf.Max(b.extents.x, b.extents.z) * colliderFitRatio;
+
+        sphere.center = transform.InverseTransformPoint(b.center);
+        sphere.radius = worldRadius / scale;
+
+        selfColliderCache = null;
     }
 
     // GameControl.csv [MONSTER] 값이 있으면 Mob_Info보다 우선 적용
@@ -1940,7 +2008,12 @@ public class MonsterChaser : MonoBehaviour
 
         if (selfColliderCache != null && selfColliderCache.enabled)
         {
-            from = selfColliderCache.ClosestPoint(targetPoint);
+            // 콜라이더 중심 높이에서 측정합니다.
+            // (몸집이 큰 몬스터는 콜라이더 중심이 높아서, 발 높이로 재면
+            //  실제로는 이미 닿아 있는데도 거리가 남아 공격을 못 하는 문제가 있었음)
+            Vector3 probe = targetPoint;
+            probe.y = selfColliderCache.bounds.center.y;
+            from = selfColliderCache.ClosestPoint(probe);
         }
 
         from.y = 0f;
